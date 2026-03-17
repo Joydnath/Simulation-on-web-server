@@ -1,5 +1,3 @@
-
-________________________Executing gromacs____________________________________
 import os
 
 # Define the source paths based on your ls output
@@ -30,10 +28,7 @@ print("Testing repaired GROMACS...")
 
 
 
-
-
-
-________________________Running simulation____________________________________
+________________________Running simulation_____________________
 import os
 
 # 1. Define where your files are actually stored
@@ -64,8 +59,6 @@ print("🚀 Launching Steered MD Simulation on Dual GPUs...")
 
 
 
-
-
 ---------------------For tbs to find the path of file and folder---------------------------------
 import os
 
@@ -87,7 +80,7 @@ print(f"📂 Using source directory: {source_dir}")
 
 
 
-_________________downloading directory________________
+_________________Downloading directory________________
 import os
 from IPython.display import FileLink
 
@@ -102,27 +95,3 @@ FileLink(r'gromacs_output.zip')
 
 _______________Cleaning directory________________
 !rm -rf /kaggle/working/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-__________________________Finding max values in terminal__________________________
-grep -v '^[#@]' smd2_pullf.xvg | awk '{
-    if (NR==1 || $1 > max1) max1=$1;
-    if (NR==1 || $2 > max2) max2=$2;
-} 
-END {
-    printf "Max Time (Col 1): %f\nMax Force (Col 2): %f\n", max1, max2
-}'
