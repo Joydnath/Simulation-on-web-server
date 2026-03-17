@@ -1,0 +1,28 @@
+import os
+from google.colab import drive
+
+# 1. Mount your Google Drive (This makes the files visible to Colab)
+if not os.path.exists('/content/drive'):
+    drive.mount('/content/drive')
+
+# 2. Define the path where you saved GROMACS
+gmx_path = "/content/drive/MyDrive/gromacs_2024"
+
+# 3. Update the System Environment (This is the "Linking" part)
+os.environ['PATH'] = f"{gmx_path}/bin:" + os.environ['PATH']
+os.environ['GMXDATA'] = f"{gmx_path}/share/gromacs"
+os.environ['LD_LIBRARY_PATH'] = f"{gmx_path}/lib:" + os.environ.get('LD_LIBRARY_PATH', '')
+
+# Give execution permission to the GROMACS binaries
+!chmod +x /content/drive/MyDrive/gromacs_2024/bin/*
+!chmod +x /content/drive/MyDrive/gromacs_2024/lib/*
+
+# Now try running your version check again
+!gmx mdrun -version | grep -E "GROMACS version|GPU support"
+
+
+________________________Running simulation____________________________________
+%%bash
+cd drive/MyDrive/DSS_runs_colab/cop
+gmx grompp -f smd.mdp -c npt.gro -p topol.top -o smd.tpr
+gmx mdrun -deffnm smd -ntmpi 1 -nb gpu -pme gpu
