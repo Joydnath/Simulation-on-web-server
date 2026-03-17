@@ -1,0 +1,128 @@
+
+________________________Executing gromacs____________________________________
+import os
+
+# Define the source paths based on your ls output
+input_lib = "/kaggle/input/datasets/joydebnath121/gromacs-2024-bin/gromacs_2024/lib"
+input_bin = "/kaggle/input/datasets/joydebnath121/gromacs-2024-bin/gromacs_2024/bin"
+working_path = "/kaggle/working"
+
+# 1. Copy the REAL 35MB library file and name it 'libgromacs.so.9'
+!cp {input_lib}/libgromacs.so.9.0.0 {working_path}/libgromacs.so.9
+
+# 2. Copy the other necessary libraries (just in case)
+!cp {input_lib}/libgmxapi.so.0.4.0 {working_path}/libgmxapi.so.0
+!cp {input_lib}/libmuparser.so.2.3.4 {working_path}/libmuparser.so.2
+!cp {input_lib}/libnblib_gmx.so.0.1.0 {working_path}/libnblib_gmx.so.0
+
+# 3. Copy and fix the GROMACS binary
+!cp {input_bin}/gmx {working_path}/gmx
+!chmod +x {working_path}/gmx
+
+# 4. Set Environment Variables to look at /working FIRST
+os.environ['PATH'] = f"{working_path}:" + os.environ['PATH']
+os.environ['LD_LIBRARY_PATH'] = f"{working_path}:" + os.environ.get('LD_LIBRARY_PATH', '')
+os.environ['GMXDATA'] = "/kaggle/input/datasets/joydebnath121/gromacs-2024-bin/gromacs_2024/share/gromacs"
+
+# 5. Final Test
+print("Testing repaired GROMACS...")
+!./gmx mdrun -version | grep -E "GROMACS version|GPU support"
+
+
+
+
+
+
+________________________Running simulation____________________________________
+import os
+
+# 1. Define where your files are actually stored
+source_dir = "/kaggle/input/datasets/joydebnath121/kaggle-first/kaggle/10K,0.01V/run_1"
+working_dir = "/kaggle/working"
+
+# 2. Copy everything to the current folder (including ITPs and MDPs)
+print("📂 Syncing files to working directory...")
+!cp -f {source_dir}/* {working_dir}/
+
+# 3. Create the repaired topology (with absolute paths for forcefields)
+ff_base = "/kaggle/input/datasets/joydebnath121/gromacs-2024-bin/gromacs_2024/share/gromacs/top/"
+with open(f"{source_dir}/topol.top", 'r') as f:
+    content = f.read()
+fixed_content = content.replace('charmm27.ff/', f'{ff_base}charmm27.ff/')
+with open('topol_final.top', 'w') as f:
+    f.write(fixed_content)
+
+# 4. Link the library dictionaries (.dat files)
+!ln -sf {ff_base}/*.dat .
+
+# 5. Run Grompp
+print("🚀 Running Grompp...")
+!GMXLIB=. ./gmx grompp -f smd.mdp -c npt.gro -p topol_final.top -o smd.tpr -maxwarn 2
+print("🚀 Launching Steered MD Simulation on Dual GPUs...")
+!GMXLIB=. ./gmx mdrun -deffnm smd -nb gpu -pme gpu -ntmpi 2 -npme 1 -ntomp 2 -v
+
+
+
+
+
+
+---------------------For tbs to find the path of file and folder---------------------------------
+import os
+
+# This will print every file in your input directory so you can copy the exact path
+print("🔍 Searching for topol.top...")
+for root, dirs, files in os.walk('/kaggle/input'):
+    for file in files:
+        if file == "topol.top":
+            print(f"✅ Found topol.top at: {os.path.join(root, file)}")
+            # This sets the source_dir automatically to where topol.top lives
+            auto_source_dir = root
+
+# Now update your script using the auto-detected path
+source_dir = auto_source_dir
+working_dir = "/kaggle/working"
+
+print(f"📂 Using source directory: {source_dir}")
+!cp -f {source_dir}/* {working_dir}/
+
+
+
+_________________downloading directory________________
+import os
+from IPython.display import FileLink
+
+# 1. Zip everything in the working directory
+# -r means recursive, -q means quiet
+!zip -r gromacs_output.zip /kaggle/working
+
+# 2. Create a download link
+FileLink(r'gromacs_output.zip')
+
+
+
+_______________Cleaning directory________________
+!rm -rf /kaggle/working/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+__________________________Finding max values in terminal__________________________
+grep -v '^[#@]' smd2_pullf.xvg | awk '{
+    if (NR==1 || $1 > max1) max1=$1;
+    if (NR==1 || $2 > max2) max2=$2;
+} 
+END {
+    printf "Max Time (Col 1): %f\nMax Force (Col 2): %f\n", max1, max2
+}'
